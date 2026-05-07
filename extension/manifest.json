@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "The First One",
+  "version": "0.1.0",
+  "description": "Check whether the current page exists in major archive services.",
+  "permissions": [
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://archive.org/*",
+    "https://web.archive.org/*",
+    "https://archive.is/*",
+    "https://archive.today/*",
+    "https://archive.ph/*",
+    "https://archive.vn/*",
+    "https://archive.fo/*",
+    "https://archive.li/*",
+    "https://archive.md/*",
+    "https://api.perma.cc/*"
+  ],
+  "action": {
+    "default_title": "The First One",
+    "default_popup": "popup.html"
+  }
+}

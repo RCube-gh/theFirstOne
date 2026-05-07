@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>The First One</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main class="app">
+      <section class="hero">
+        <p class="eyebrow">ARCHIVE SCAN</p>
+        <h1>The First One</h1>
+        <p class="subtitle">
+          Check whether this page has already been preserved.
+        </p>
+      </section>
+
+      <section class="panel">
+        <label class="field-label" for="url-input">Page URL</label>
+        <div class="url-row">
+          <input id="url-input" class="url-input" type="url" spellcheck="false">
+          <button id="use-current-button" class="ghost-button" type="button">
+            Current
+          </button>
+        </div>
+
+        <div class="actions">
+          <button id="scan-button" class="scan-button" type="button">Scan Archives</button>
+        </div>
+
+        <p id="summary" class="summary" aria-live="polite">
+          Pick a page and start scanning.
+        </p>
+      </section>
+
+      <section class="services">
+        <div class="services-header">
+          <h2>Services</h2>
+          <span id="scan-state" class="scan-state">Idle</span>
+        </div>
+
+        <div id="service-list" class="service-list"></div>
+      </section>
+
+      <template id="service-row-template">
+        <article class="service-row">
+          <label class="service-main">
+            <input class="service-toggle" type="checkbox">
+            <div class="service-copy">
+              <div class="service-name-row">
+                <span class="service-name"></span>
+                <button class="service-info" type="button" aria-label="Show details">i</button>
+                <div class="service-tooltip" role="tooltip"></div>
+              </div>
+            </div>
+          </label>
+
+          <div class="service-result">
+            <span class="service-status" aria-hidden="true"></span>
+            <a class="service-link" target="_blank" rel="noreferrer">Open</a>
+          </div>
+        </article>
+      </template>
+    </main>
+
+    <script src="popup.js" type="module"></script>
+  </body>
+</html>
