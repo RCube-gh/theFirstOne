@@ -146,6 +146,70 @@ h1 {
   color: var(--muted);
 }
 
+.first-one-moment {
+  position: relative;
+  overflow: hidden;
+  margin-top: 14px;
+  padding: 18px 18px 16px;
+  border: 1px solid rgba(255, 188, 93, 0.48);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 88% 8%, rgba(255, 255, 255, 0.9), transparent 22%),
+    linear-gradient(135deg, rgba(255, 230, 243, 0.96), rgba(255, 247, 210, 0.94));
+  box-shadow: 0 14px 30px rgba(245, 168, 88, 0.18);
+  transform: translateY(8px) scale(0.98);
+  opacity: 0;
+}
+
+.first-one-moment.is-visible {
+  animation: first-one-arrival 0.52s cubic-bezier(0.2, 0.9, 0.25, 1) forwards;
+}
+
+.first-one-moment h2 {
+  margin: 2px 0 6px;
+  color: #55354c;
+  font-size: 18px;
+  line-height: 1.15;
+}
+
+.first-one-moment p {
+  margin: 0;
+  color: #806278;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.first-one-kicker {
+  color: #d58849 !important;
+  font-size: 10px !important;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.first-one-sparkles span {
+  position: absolute;
+  color: #f2ad4f;
+  text-shadow: 0 2px 8px rgba(255, 184, 84, 0.42);
+}
+
+.first-one-sparkles span:nth-child(1) {
+  top: 13px;
+  right: 20px;
+  font-size: 20px;
+}
+
+.first-one-sparkles span:nth-child(2) {
+  top: 40px;
+  right: 46px;
+  font-size: 12px;
+}
+
+.first-one-sparkles span:nth-child(3) {
+  right: 17px;
+  bottom: 13px;
+  font-size: 11px;
+}
+
 .services {
   margin-top: 14px;
   overflow: hidden;
@@ -379,5 +443,22 @@ h1 {
   100% {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+@keyframes first-one-arrival {
+  0% {
+    transform: translateY(8px) scale(0.98);
+    opacity: 0;
+  }
+
+  70% {
+    transform: translateY(-2px) scale(1.01);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
   }
 }

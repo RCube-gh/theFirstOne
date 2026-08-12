@@ -31,16 +31,39 @@ const services = [
     description: "Checks public Perma.cc archives for a matching preserved URL.",
     enabled: true,
     check: checkPermaCc
+  },
+  {
+    id: "ghostarchive",
+    name: "Ghostarchive",
+    description: "Searches Ghostarchive for a preserved copy of this page.",
+    enabled: true,
+    check: checkGhostarchive
+  },
+  {
+    id: "megalodon",
+    name: "Megalodon.jp",
+    description: "Searches the Web Gyotaku archive for a preserved copy of this page.",
+    enabled: true,
+    check: checkMegalodon
+  },
+  {
+    id: "webcite",
+    name: "WebCite",
+    description: "Checks WebCite's existing archive. New captures are no longer accepted.",
+    enabled: true,
+    check: checkWebCite
   }
 ];
 
 const serviceElements = new Map();
+let currentTab = null;
 
 const urlInput = document.querySelector("#url-input");
 const useCurrentButton = document.querySelector("#use-current-button");
 const scanButton = document.querySelector("#scan-button");
 const summaryElement = document.querySelector("#summary");
 const scanStateElement = document.querySelector("#scan-state");
+const firstOneMomentElement = document.querySelector("#first-one-moment");
 const serviceListElement = document.querySelector("#service-list");
 const rowTemplate = document.querySelector("#service-row-template");
 const defaultScanButtonLabel = scanButton.textContent;
@@ -69,6 +92,7 @@ function renderServiceRows() {
     toggle.checked = service.enabled;
     toggle.addEventListener("change", () => {
       service.enabled = toggle.checked;
+      hideFirstOneMoment();
       updateSummaryIdle();
     });
 
@@ -88,8 +112,18 @@ function renderServiceRows() {
 
 async function fillCurrentTabUrl() {
   const tab = await getActiveTab();
+  currentTab = tab;
+  hideFirstOneMoment();
+
   if (tab?.url && isSupportedUrl(tab.url)) {
     urlInput.value = tab.url;
+    const savedScan = await getSavedScan(tab.id, tab.url);
+
+    if (savedScan) {
+      restoreScan(savedScan);
+      return;
+    }
+
     updateSummaryIdle();
     return;
   }
@@ -129,6 +163,7 @@ async function onScanClick() {
   }
 
   summaryElement.textContent = "Scanning selected services...";
+  hideFirstOneMoment();
   scanStateElement.textContent = "Scanning";
   scanButton.disabled = true;
   scanButton.textContent = "Scanning...";
@@ -151,33 +186,100 @@ async function onScanClick() {
     activeServices.map(service => runServiceCheck(service, targetUrl))
   );
 
-  let foundCount = 0;
-  let missingCount = 0;
-  let errorCount = 0;
-
   for (const result of results) {
     setServiceStatus(result.serviceId, result);
-
-    if (result.status === "found") {
-      foundCount += 1;
-    } else if (result.status === "not_found") {
-      missingCount += 1;
-    } else if (result.status === "error") {
-      errorCount += 1;
-    }
   }
 
-  if (foundCount > 0) {
-    summaryElement.textContent = `${foundCount} archive service${foundCount === 1 ? "" : "s"} found a preserved copy.`;
-  } else if (missingCount === activeServices.length) {
-    summaryElement.textContent = "No archive found in the selected services. You may be The First One.";
-  } else {
-    summaryElement.textContent = `Scan finished with ${errorCount} error${errorCount === 1 ? "" : "s"}.`;
+  const summary = getScanSummary(results, activeServices.length);
+  summaryElement.textContent = summary;
+  if (isFirstOneResult(results, activeServices.length)) {
+    showFirstOneMoment();
   }
 
   scanStateElement.textContent = "Done";
   scanButton.disabled = false;
   scanButton.textContent = defaultScanButtonLabel;
+
+  await saveScan(currentTab?.id, targetUrl, results, summary);
+}
+
+function getScanSummary(results, selectedCount) {
+  const foundCount = results.filter(result => result.status === "found").length;
+  const missingCount = results.filter(result => result.status === "not_found").length;
+  const errorCount = results.filter(result => result.status === "error").length;
+
+  if (foundCount > 0) {
+    return `${foundCount} archive service${foundCount === 1 ? "" : "s"} found a preserved copy.`;
+  }
+
+  if (missingCount === selectedCount) {
+    return "No archive found in the selected services. You are The First One.";
+  }
+
+  return `Scan finished with ${errorCount} error${errorCount === 1 ? "" : "s"}.`;
+}
+
+function isFirstOneResult(results, selectedCount) {
+  return (
+    selectedCount > 0 &&
+    results.length === selectedCount &&
+    results.every(result => result.status === "not_found")
+  );
+}
+
+function showFirstOneMoment() {
+  firstOneMomentElement.hidden = false;
+  firstOneMomentElement.classList.remove("is-visible");
+  requestAnimationFrame(() => firstOneMomentElement.classList.add("is-visible"));
+}
+
+function hideFirstOneMoment() {
+  firstOneMomentElement.hidden = true;
+  firstOneMomentElement.classList.remove("is-visible");
+}
+
+function getScanStorageKey(tabId) {
+  return `scan:${tabId}`;
+}
+
+async function getSavedScan(tabId, tabUrl) {
+  if (!Number.isInteger(tabId) || !extApi?.storage?.session) {
+    return null;
+  }
+
+  const key = getScanStorageKey(tabId);
+  const saved = await extApi.storage.session.get(key);
+  const scan = saved[key];
+  const normalizedTabUrl = normalizeInputUrl(tabUrl);
+
+  return scan?.url === normalizedTabUrl ? scan : null;
+}
+
+async function saveScan(tabId, targetUrl, results, summary) {
+  if (!Number.isInteger(tabId) || !extApi?.storage?.session) {
+    return;
+  }
+
+  await extApi.storage.session.set({
+    [getScanStorageKey(tabId)]: {
+      url: targetUrl,
+      results,
+      summary,
+      checkedAt: new Date().toISOString()
+    }
+  });
+}
+
+function restoreScan(scan) {
+  for (const result of scan.results) {
+    setServiceStatus(result.serviceId, result);
+  }
+
+  summaryElement.textContent = scan.summary;
+  scanStateElement.textContent = "Restored";
+  if (isFirstOneResult(scan.results, scan.results.length)) {
+    showFirstOneMoment();
+  }
 }
 
 async function runServiceCheck(service, targetUrl) {
@@ -296,6 +398,96 @@ async function checkPermaCc(targetUrl) {
 
   return {
     serviceId: "permacc",
+    status: "not_found",
+    detail: "Not found"
+  };
+}
+
+async function checkGhostarchive(targetUrl) {
+  const endpoint =
+    `https://ghostarchive.org/search?term=${encodeURIComponent(targetUrl)}`;
+  const response = await fetch(endpoint, {
+    method: "GET"
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  const document = new DOMParser().parseFromString(await response.text(), "text/html");
+  const resultLink = document.querySelector("#bodyContent table td a[href]");
+
+  if (resultLink) {
+    return {
+      serviceId: "ghostarchive",
+      status: "found",
+      archiveUrl: new URL(resultLink.getAttribute("href"), response.url).href,
+      detail: "Found"
+    };
+  }
+
+  return {
+    serviceId: "ghostarchive",
+    status: "not_found",
+    detail: "Not found"
+  };
+}
+
+async function checkMegalodon(targetUrl) {
+  const endpoint = `https://megalodon.jp/?url=${encodeURIComponent(targetUrl)}`;
+  const response = await fetch(endpoint, {
+    method: "GET"
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  const document = new DOMParser().parseFromString(await response.text(), "text/html");
+  const resultLink = document.querySelector('#bgcontain a[id^="fish"][href]');
+
+  if (resultLink) {
+    return {
+      serviceId: "megalodon",
+      status: "found",
+      archiveUrl: new URL(resultLink.getAttribute("href"), response.url).href,
+      detail: "Found"
+    };
+  }
+
+  return {
+    serviceId: "megalodon",
+    status: "not_found",
+    detail: "Not found"
+  };
+}
+
+async function checkWebCite(targetUrl) {
+  const date = new Date().toISOString().slice(0, 10);
+  const endpoint =
+    `https://www.webcitation.org/query?url=${encodeURIComponent(targetUrl)}&date=${date}`;
+  const response = await fetch(endpoint, {
+    method: "GET"
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  const document = new DOMParser().parseFromString(await response.text(), "text/html");
+  const hasArchiveFrame = document.querySelector('frame[name="main"]') !== null;
+
+  if (hasArchiveFrame) {
+    return {
+      serviceId: "webcite",
+      status: "found",
+      archiveUrl: response.url,
+      detail: "Found"
+    };
+  }
+
+  return {
+    serviceId: "webcite",
     status: "not_found",
     detail: "Not found"
   };

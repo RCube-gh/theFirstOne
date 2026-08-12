@@ -4,7 +4,8 @@
   "version": "0.1.0",
   "description": "Check whether the current page exists in major archive services.",
   "permissions": [
-    "activeTab"
+    "activeTab",
+    "storage"
   ],
   "host_permissions": [
     "https://archive.org/*",
@@ -16,10 +17,27 @@
     "https://archive.fo/*",
     "https://archive.li/*",
     "https://archive.md/*",
-    "https://api.perma.cc/*"
+    "https://api.perma.cc/*",
+    "https://ghostarchive.org/*",
+    "https://megalodon.jp/*",
+    "https://www.webcitation.org/*"
   ],
   "action": {
     "default_title": "The First One",
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "96": "icons/icon-96.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "96": "icons/icon-96.png",
+    "128": "icons/icon-128.png"
   }
 }
